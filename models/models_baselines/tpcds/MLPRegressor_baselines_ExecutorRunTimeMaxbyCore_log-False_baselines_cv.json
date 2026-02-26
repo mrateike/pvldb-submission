@@ -1,0 +1,51 @@
+{
+    "model_name": "MLPRegressor",
+    "model_params": {
+        "hidden_layer_sizes": [
+            20,
+            10,
+            10,
+            10,
+            10
+        ],
+        "activation": "logistic",
+        "learning_rate_init": 0.0001,
+        "max_iter": 1000,
+        "solver": "adam"
+    },
+    "mse_mean": 27.107162647353043,
+    "mse_std": 8.4094210868705,
+    "r2_mean": 0.3351585472693676,
+    "r2_std": 0.12837269416392913,
+    "negpred_mean": 0.0,
+    "negpred_std": 0.0,
+    "best_model_instance_mse": 13.415401710523478,
+    "best_model_instance_r2": 0.591096741940533,
+    "target_column": "ExecutorRunTimeMaxbyCore",
+    "run_type": "baselines",
+    "log_target": false,
+    "feature_columns": [
+        "Number of Tasks",
+        "NumberExecutors",
+        "InputBytesperStage",
+        "PartitionsperStage",
+        "NumberOperations",
+        "DAGwidth",
+        "DAGdepth",
+        "DataSourceRDD",
+        "FileScanRDD",
+        "MapPartitionsRDD",
+        "ParallelCollectionRDD",
+        "ShuffledRowRDD",
+        "UnionRDD",
+        "ZippedPartitionsRDD2",
+        "CartesianColumnarBatchRDD",
+        "GlutenWholeStageColumnarRDD",
+        "ShuffledColumnarBatchRDD",
+        "WholeStageZippedPartitionsRDD"
+    ],
+    "train_data_num": 49580,
+    "test_data_num": 12395,
+    "folder_name": "baselines",
+    "number_executors": "baselines"
+}
