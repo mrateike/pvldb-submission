@@ -15,4 +15,4 @@ This repository contains the online appendix for our VLDB submission. It provide
 
 
 ## Code
-We are not releasing code due to corporate restrictions
+We are not releasing code due to corporate restrictions.
