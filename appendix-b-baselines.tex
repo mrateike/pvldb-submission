@@ -1,0 +1,96 @@
+% Appendix B: Baselines
+
+% This appendix provides additional information on the baseline methods adapted in our evaluation that could not be included in the main paper due to space constraints.
+
+\section{Baseline Overview}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Baseline} & \textbf{Category} & \textbf{Reference} \\
+\midrule
+ReLoca & n-shot & \href{https://ieeexplore.ieee.org/document/9155521}{[Link]} \\
+CherryPick & n-shot & \href{https://www.usenix.org/system/files/conference/nsdi17/nsdi17-alipourfard.pdf}{[Link]} \\
+Apache Spark & 0-shot & --- \\
+\bottomrule
+\end{tabular}
+\caption{Baseline methods overview}
+\end{table}
+
+For all cross-validation experiments for our models and baselines we used the same training/testing splits.
+
+\section{Baseline Descriptions}
+
+\subsection{ReLoca adaptation}
+
+\begin{itemize}
+    \item \textbf{Category:} n-shot
+    \item \textbf{Key idea:} ReLoca is a deep learning-based framework that optimizes resource allocation for data-parallel jobs to minimize job completion time. It employs a deep neural network trained with an adaptive sampling method to learn the impact of job operations on system overhead and compute time, achieving a 29.85\% reduction in job completion time compared to existing methods.
+    \item \textbf{Original setting:} ReLoca focuses in optimizing performance rather than cost at an application level. The computational domains differ substantially between the two approaches---ReLoca targets machine learning workloads, whereas our evaluation utilizes SQL query execution traces.
+    \item \textbf{Adaptations considerations:} We adopted the input features specified in Table 1 from the original ReLoca publication and incorporated the proposed neural network architecture (as depicted in Figure 5) into our hyperparameter optimization framework. Following the computational methodology described in Figure 4, we derived the DAG width and depth metrics for each application. A fundamental adaptation was required due to our framework's stage-level granularity for resource recommendation: we transitioned from application-level execution duration prediction (as originally formulated in ReLoca) to stage-level predictions.
+    
+    Regarding data collection and experimental design, ReLoca employs an interventional sampling protocol that systematically balances under-allocation scenarios (which degrade performance) and over-allocation scenarios (which introduce substantial system overhead). This approach yields approximately 600 samples per application (approximately 3,000 total experimental runs), with 200 samples per application reserved for training.
+    
+    In contrast, our experimental dataset comprises approximately 55 runs per benchmark (totaling 110 experimental runs across both benchmarks), substantially constrained by data collection limitations inherent to production system monitoring. These methodological disparities in data scale, workload characteristics, prediction granularity, and experimental scope, represent significant constraints in our experimental setup and may impact the direct comparability of baseline method performance in our evaluation.
+    \item \textbf{Grid search parameters:} The final model configuration was selected through a grid search procedure that systematically evaluated the hyperparameter space across five dimensions: hidden layer sizes and depth, activation functions, learning rate parameters, maximum iteration thresholds, and solver algorithms.
+\end{itemize}
+
+\subsection{CherryPick adaptation}
+
+\begin{itemize}
+    \item \textbf{Category:} n-shot
+    \item \textbf{Key idea:} CherryPick addresses the challenge of selecting optimal cloud configurations for recurring big data analytics jobs. The system employs Bayesian Optimization to construct performance models that achieve sufficient accuracy to identify the best or near-best configurations from numerous VM instance types and cluster sizes with minimal test runs. By building models that distinguish optimal configurations from suboptimal alternatives through only a few experimental evaluations, CherryPick significantly reduces the search cost overhead. Experimental validation demonstrates that CherryPick achieves a 45-90\% success rate in identifying optimal configurations, while reducing search cost by up to 75\% compared to existing configuration selection approaches.
+    \item \textbf{Original setting:} CherryPick is a solution to predict multiple resources at VM and application level, this include recommending CPU, Disk, RAM, Network resources, their main objective is to reduce cost. This means their recommendations are static to create the VM, not a dynamic recommendation of resources like is proposed in our paper. They include SQL applications, such as TPC-DS and TPC-H, as well as machine learning workloads.
+    \item \textbf{Adaptations considerations:} We adopted the Gaussian Process formulation employed by CherryPick in their Bayesian Optimization engine (Section 3.5 in the original publication) as the foundational approach for cost estimation. However, we adapted the input feature space to reflect our system's architectural constraints: rather than utilizing global VM configuration parameters (instance type, CPU allocation, network bandwidth, memory allocation), we employed stage-level performance indicators including task count, executor allocation, partition sizes, and related metrics to estimate cost (in our case the target variable \texttt{ExecutorRunTime}). This transition represents a substantial distribution shift in the feature space and data characteristics compared to CherryPick's formulation, while maintaining the same modeling approach. CherryPick's training dataset comprises interventional data derived from 66 distinct cloud configurations, systematically varying VM instance types, CPU cores, network specifications, and memory allocations (as detailed in Section 5.1 from their paper). In contrast, our evaluation utilizes 10 configuration variants, reflecting constraints in experimental data collection feasibility. Furthermore, the resource recommendation mechanisms differ fundamentally: CherryPick employs a Bayesian Optimization allocation process that leverages the Gaussian Process prior for configuration recommendation, whereas our approach implements the cost-effective solver described in Section 3.4 of our paper with $\theta_r = 0.0$. These methodological differences in data variations, workload characteristics, prediction granularity, configuration space, and resource allocation methodology represent significant constraints in our experimental setup and may impact the performance of our adaptation relative to CherryPick approach.
+    \item \textbf{Grid search parameters:} The final model configuration was selected through a grid search procedure that systematically evaluated the hyperparameter space across four critical dimensions: regularization parameter (alpha), target variable normalization strategy, optimizer restart behavior, and kernel specifications.
+\end{itemize}
+
+\section{Hyperparameter Configuration}
+
+\begin{landscape}
+\begin{longtable}{@{}p{1.5cm}p{2cm}p{2.5cm}p{1cm}p{4cm}p{6cm}p{1.5cm}p{1.5cm}p{1.5cm}p{1.5cm}p{1.5cm}p{1.5cm}@{}}
+\toprule
+\textbf{Dataset} & \textbf{Model} & \textbf{Target} & \textbf{Log} & \textbf{Parameters} & \textbf{Features} & \textbf{Train} & \textbf{Test} & \textbf{MSE Mean} & \textbf{R² Mean} & \textbf{Best MSE} & \textbf{Best R²} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Dataset} & \textbf{Model} & \textbf{Target} & \textbf{Log} & \textbf{Parameters} & \textbf{Features} & \textbf{Train} & \textbf{Test} & \textbf{MSE Mean} & \textbf{R² Mean} & \textbf{Best MSE} & \textbf{Best R²} \\
+\midrule
+\endhead
+tpcds & GP (CherryPick) & DurationStage & True & alpha: 1e-06, normalize\_y: true, n\_restarts\_optimizer: 1 & Number of Tasks, NumberExecutors, InputBytesperStage, PartitionsperStage, NumberOperations, DataSourceRDD, FileScanRDD, MapPartitionsRDD, ParallelCollectionRDD, ShuffledRowRDD, UnionRDD, ZippedPartitionsRDD2, CartesianColumnarBatchRDD, GlutenWholeStageColumnarRDD, ShuffledColumnarBatchRDD, WholeStageZippedPartitionsRDD & 29,721 & 7,431 & 8.04 & 0.829 & 7.25 & 0.834 \\
+\addlinespace
+tpcds & MLP (ReLoca) & ExecutorRunTimeMaxbyCore & False & hidden\_layer\_sizes: [20,10,10,10,10], activation: logistic, learning\_rate\_init: 0.0001, max\_iter: 1000, solver: adam & Number of Tasks, NumberExecutors, InputBytesperStage, PartitionsperStage, NumberOperations, DAGwidth, DAGdepth, DataSourceRDD, FileScanRDD, MapPartitionsRDD, ParallelCollectionRDD, ShuffledRowRDD, UnionRDD, ZippedPartitionsRDD2, CartesianColumnarBatchRDD, GlutenWholeStageColumnarRDD, ShuffledColumnarBatchRDD, WholeStageZippedPartitionsRDD & 49,580 & 12,395 & 27.11 & 0.335 & 13.42 & 0.591 \\
+\addlinespace
+tpcds & GP (CherryPick) & ExecutorRunTimeMaxbyCore & True & alpha: 1e-06, normalize\_y: true, n\_restarts\_optimizer: 1 & Number of Tasks, NumberExecutors, InputBytesperStage, PartitionsperStage, NumberOperations, DataSourceRDD, FileScanRDD, MapPartitionsRDD, ParallelCollectionRDD, ShuffledRowRDD, UnionRDD, ZippedPartitionsRDD2, CartesianColumnarBatchRDD, GlutenWholeStageColumnarRDD, ShuffledColumnarBatchRDD, WholeStageZippedPartitionsRDD & 29,721 & 7,431 & 3.34 & 0.893 & 2.81 & 0.938 \\
+\addlinespace
+tpcds & MLP (ReLoca) & DurationStage & False & hidden\_layer\_sizes: [20,10,10,10,10], activation: tanh, learning\_rate\_init: 0.0001, max\_iter: 1000, solver: adam & Number of Tasks, NumberExecutors, InputBytesperStage, PartitionsperStage, NumberOperations, DAGwidth, DAGdepth, DataSourceRDD, FileScanRDD, MapPartitionsRDD, ParallelCollectionRDD, ShuffledRowRDD, UnionRDD, ZippedPartitionsRDD2, CartesianColumnarBatchRDD, GlutenWholeStageColumnarRDD, ShuffledColumnarBatchRDD, WholeStageZippedPartitionsRDD & 49,580 & 12,395 & 44.22 & 0.207 & 36.07 & 0.242 \\
+\addlinespace
+sqlstorm & GP (CherryPick) & ExecutorRunTimeMaxbyCore & True & alpha: 1e-06, normalize\_y: true, n\_restarts\_optimizer: 1 & Number of Tasks, NumberExecutors, InputBytesperStage, PartitionsperStage, NumberOperations, DataSourceRDD, FileScanRDD, MapPartitionsRDD, ParallelCollectionRDD, ShuffledRowRDD, UnionRDD, ZippedPartitionsRDD2, CartesianColumnarBatchRDD, GlutenWholeStageColumnarRDD, ShuffledColumnarBatchRDD, WholeStageZippedPartitionsRDD & 49,580 & 12,395 & 6.55 & 0.798 & 3.35 & 0.932 \\
+\addlinespace
+sqlstorm & MLP (ReLoca) & DurationStage & False & hidden\_layer\_sizes: [10,5,5,5,5], activation: relu, learning\_rate\_init: 0.001, max\_iter: 200, solver: adam & Number of Tasks, ExecutorCores, NumberExecutors, InputBytesperStage, PartitionsperStage, NumberOperations, DAGwidth, DAGdepth, DataSourceRDD, FileScanRDD, MapPartitionsRDD, ParallelCollectionRDD, ShuffledRowRDD, UnionRDD, ZippedPartitionsRDD2, CartesianColumnarBatchRDD, GlutenWholeStageColumnarRDD, ShuffledColumnarBatchRDD, WholeStageZippedPartitionsRDD & 19,858 & 4,965 & 124.52 & -1.233 & 56.14 & -0.001 \\
+\addlinespace
+sqlstorm & GP (CherryPick) & DurationStage & True & alpha: 1e-06, normalize\_y: true, n\_restarts\_optimizer: 1 & Number of Tasks, NumberExecutors, InputBytesperStage, PartitionsperStage, NumberOperations, DataSourceRDD, FileScanRDD, MapPartitionsRDD, ParallelCollectionRDD, ShuffledRowRDD, UnionRDD, ZippedPartitionsRDD2, CartesianColumnarBatchRDD, GlutenWholeStageColumnarRDD, ShuffledColumnarBatchRDD, WholeStageZippedPartitionsRDD & 49,580 & 12,395 & 18.16 & 0.662 & 10.55 & 0.776 \\
+\addlinespace
+sqlstorm & MLP (ReLoca) & ExecutorRunTimeMaxbyCore & False & hidden\_layer\_sizes: [10,5,5,5,5], activation: relu, learning\_rate\_init: 0.001, max\_iter: 200, solver: adam & Number of Tasks, ExecutorCores, NumberExecutors, InputBytesperStage, PartitionsperStage, NumberOperations, DAGwidth, DAGdepth, DataSourceRDD, FileScanRDD, MapPartitionsRDD, ParallelCollectionRDD, ShuffledRowRDD, UnionRDD, ZippedPartitionsRDD2, CartesianColumnarBatchRDD, GlutenWholeStageColumnarRDD, ShuffledColumnarBatchRDD, WholeStageZippedPartitionsRDD & 19,858 & 4,965 & 103.21 & -1.540 & 41.15 & 0.003 \\
+\bottomrule
+\caption{Baseline hyperparameter configurations and performance metrics}
+\end{longtable}
+\end{landscape}
+
+\section{Model Availability}
+
+The trained regression models and their configurations are available in the \texttt{models/models\_baselines} directory, organized by dataset (tpcds and sqlstorm). Each model is stored as a ONNX and JSON files. The JSON files contain comprehensive model metadata including: the model name and type, hyperparameters specific to each model architecture, cross-validation performance metrics, information about negative predictions, the best model instance metrics, target column name, run type classification, log transformation flag, feature column names used for training, training and test dataset sizes, and folder organization information. This structured format enables easy retrieval and deployment of models while maintaining full reproducibility of the modeling configurations. The feature sets include computational characteristics such as task counts, executor configuration, data volumes, partition information, operation counts, DAG topology metrics, and RDD type distributions, providing comprehensive coverage of the factors influencing query performance and resource utilization. The ONNX file contains the trained model ready to use at inference time.
+
+\section{Training Time Considerations}
+
+While this work compares performance and cost across methods, we need to note that training time can differ substantially between the implemented methods. On a M1 Max, 64GB RAM desktop laptop, \href{https://ieeexplore.ieee.org/document/9155521}{ReLoca} trained in $\approx 12$ seconds on both benchmarks, similar to our approaches, which require $\approx 11$ seconds for both benchmarks. In contrast, \href{https://www.usenix.org/system/files/conference/nsdi17/nsdi17-alipourfard.pdf}{CherryPick} required $\approx 3$ hours $39$ minutes on SQLStorm and $\approx 8$ hours $54$ minutes on TPC-DS.
+
+\subsection*{References}
+
+\begin{itemize}
+    \item Hu, Z., Li, D., Zhang, D. and Chen, Y., 2020, July. ReLoca: Optimize resource allocation for data-parallel jobs using deep learning. In IEEE INFOCOM 2020-IEEE Conference on Computer Communications (pp. 1163-1171). IEEE. \href{https://ieeexplore.ieee.org/document/9155521}{[Link]}
+    \item Alipourfard, O., Liu, H.H., Chen, J., Venkataraman, S., Yu, M. and Zhang, M., 2017. \{CherryPick\}: Adaptively unearthing the best cloud configurations for big data analytics. In 14th USENIX Symposium on Networked Systems Design and Implementation (NSDI 17) (pp. 469-482). \href{https://www.usenix.org/system/files/conference/nsdi17/nsdi17-alipourfard.pdf}{[Link]}
+\end{itemize}
+
+% Made with Bob
